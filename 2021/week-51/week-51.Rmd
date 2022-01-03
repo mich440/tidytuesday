@@ -1,0 +1,98 @@
+---
+title: "Spice Girls | Week 51"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## --- Libraries
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(MetBrewer)
+
+library(showtext)
+font_add_google("Roboto Condensed", "roboto condensed")
+font_add_google("Racing Sans One")
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+## --- Read in data
+tuesdata <- tidytuesdayR::tt_load('2021-12-14')
+
+related_artists <- tuesdata$related_artists
+lyrics <- tuesdata$lyrics
+studio_album_tracks <- tuesdata$studio_album_tracks
+```
+
+```{r}
+## --- Select Relevant Data
+studio_album_tracks <- studio_album_tracks %>% 
+  select(album_name, track_name, danceability, energy, loudness,
+         speechiness, acousticness, liveness, valence, tempo, duration_ms)
+
+## --- Convert milliseconds to seconds
+studio_album_tracks <- studio_album_tracks %>% 
+  mutate(duration_seconds = duration_ms / 1000)
+```
+
+```{r}
+## --- Data wrangling
+
+## Filter to Forever
+forever <- studio_album_tracks %>% filter(album_name == "Forever")
+
+forever_dev <- forever %>% 
+  select(track_name, danceability, energy, valence, duration_seconds) %>% 
+  mutate(Danceability = danceability, Energy = energy, Valence = valence) %>% 
+  select(-c(2:4)) %>% 
+  pivot_longer(cols = 3:5, names_to = "stats", values_to = "values") %>% 
+  group_by(stats) %>% 
+  mutate(mean = round(mean(values), 4))
+```
+
+```{r}
+## --- Plot
+ggplot(forever_dev) +
+  geom_col(aes(x = reorder(str_wrap(track_name, 8), duration_seconds),
+               y = values, fill = duration_seconds)) +
+  geom_point(aes(x = reorder(str_wrap(track_name, 8), duration_seconds),
+                 y = mean),
+             color = "gray44") +
+  geom_segment(aes(x = reorder(str_wrap(track_name, 8), duration_seconds),
+               y = 0,
+               xend = reorder(str_wrap(track_name, 8), duration_seconds),
+               yend = 1),
+               linetype = "dashed",
+               color = "gray44") +
+  facet_wrap(~stats,) +
+  labs(title = "Forever - Spice Girls",
+       subtitle = "Which song in the Spice Girls' final album would make the best party track?",
+       caption = "Source: Spotify and Genius by @jacquietran | #TidyTuesday Week 51") + 
+  scale_fill_gradientn(colors = rev(met.brewer("Greek")),
+                       name = "Duration (seconds)") +
+  theme_light(base_family = "roboto condensed", base_size = 6) +
+  theme(axis.title = element_blank(),
+        legend.margin = margin(t = 0),
+        legend.position = "bottom",
+        legend.text = element_text(size = 8),
+        panel.border = element_blank(),
+        plot.caption = element_text(size = 6,
+                                    hjust = 1),
+        plot.title = element_text(family = "Racing Sans One",
+                                  color = "chocolate3", size = 14),
+        strip.background = element_rect(fill = "coral4", margin(b = 20)),
+        strip.text = element_text(color = "white", size = 8)) +
+  coord_polar()
+
+## --- Save plot
+ggsave("spicegirls.png", width = 10, height = 5, units = "in")
+```
