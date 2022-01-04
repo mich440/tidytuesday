@@ -124,14 +124,18 @@ ggplot(data = plastics2020, aes(x = continent, y = percentage, fill = continent)
        subtitle = "The top 10 companies who are the source of the plastic pollution in 2020",
        caption = "Source: Break Free from Plastic by Sarah Sauve") +
   scale_fill_poke(pokemon = 73, name = "Continent") +
+  guides(fill = guide_legend(title.position = "top")) +
   theme_bw(base_family = "Semi-bold 600") +
   theme(axis.text.x = element_blank(),
         axis.ticks.x.bottom = element_blank(),
         axis.title.x = element_blank(),
-        legend.position = "right",
+        legend.direction = "horizontal",
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = c(0.75, 0.2),
+        legend.text = element_text(size = 8),
         panel.grid = element_blank(),
         plot.caption = element_text(size = 6, 
-                                    hjust = 1.15),
+                                    hjust = 1),
         plot.title = element_text(face = "bold"),
         plot.subtitle = element_text(size = 9),
         strip.text = element_text(size = 7)) +
