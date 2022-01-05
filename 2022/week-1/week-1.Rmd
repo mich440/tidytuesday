@@ -1,0 +1,82 @@
+---
+title: "BYOD | Week 1"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## --- Libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(usmap)
+
+library(showtext)
+font_add_google("Domine", "Regular 400")
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+## --- Read in data
+## Shootings data
+shootings <- read_csv(here::here("2022/week-1/data/shootings.csv"))
+
+## US map
+us_states_map <- us_map(regions = "states") %>% 
+  select(x, y, abbr, full, group) %>% rename(lat = y, long = x)
+```
+
+```{r}
+## --- Data preprocessing & wrangling
+## Convert to factor
+shootings <- shootings %>% mutate(manner_of_death = factor(manner_of_death),
+                                  armed = factor(armed),
+                                  gender = factor(gender, levels = c("M", "F"), labels = c("Male", "Female")),
+                                  race = factor(race),
+                                  city = factor(city),
+                                  state = factor(state),
+                                  signs_of_mental_illness = factor(signs_of_mental_illness),
+                                  threat_level = factor(threat_level),
+                                  flee = factor(flee),
+                                  body_camera = factor(body_camera),
+                                  arms_category = factor(arms_category))
+
+## Filter to 2016
+shootings_2016 <- shootings %>% filter(date >= "2016-01-01" & date <= "2016-12-31") 
+
+## Calculate total
+state_total <- shootings_2016 %>% group_by(state) %>% summarise(total = n())
+
+## Aggregate data
+us_state_total <- state_total %>% left_join(us_states_map, by = c("state" = "abbr"))
+```
+
+```{r}
+## --- Plot
+ggplot(us_state_total, 
+             aes(x = long, y = lat, group = group)) + 
+  geom_polygon(color = "black", size = 0.25, 
+               aes(group = group, fill = total)) + 
+  labs(title = "How many police shootings were there in 2016?",
+       caption = "Source: Ahsen Nazir | Kaggle",
+       fill = "Number of \nShootings") +
+  scale_fill_distiller(palette = "OrRd", direction = 1) +
+  theme_light(base_family = "Regular 400") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        legend.title = element_text(size = 9),
+        panel.border = element_blank(),
+        panel.grid = element_blank(),
+        plot.caption = element_text(hjust = 0),
+        plot.title = element_text(face = "bold", size = 16))
+
+## --- Save Plot
+ggsave("shootings.png", height = 5, width = 8, units = "in")
+```
