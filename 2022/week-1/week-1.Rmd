@@ -28,44 +28,61 @@ showtext_auto(enable = TRUE)
 shootings <- read_csv(here::here("2022/week-1/data/shootings.csv"))
 
 ## US map
-us_states_map <- us_map(regions = "states") %>% 
-  select(x, y, abbr, full, group) %>% rename(lat = y, long = x)
+us_map <- us_map(regions = "states") %>% 
+  select(x, y, abbr, full, group) %>% 
+  rename(lat = y, long = x, state = full)
+
+## US states
+us_states <- read_csv(here::here("2022/week-1/data/csvData.csv"))
+
+## US population
+us_pop <- read_csv(here::here("2022/week-1/data/2019_Census_US_Population_Data_By_State_Lat_Long.csv"))
 ```
 
 ```{r}
-## --- Data preprocessing & wrangling
-## Convert to factor
-shootings <- shootings %>% mutate(manner_of_death = factor(manner_of_death),
-                                  armed = factor(armed),
-                                  gender = factor(gender, levels = c("M", "F"), labels = c("Male", "Female")),
-                                  race = factor(race),
-                                  city = factor(city),
-                                  state = factor(state),
-                                  signs_of_mental_illness = factor(signs_of_mental_illness),
-                                  threat_level = factor(threat_level),
-                                  flee = factor(flee),
-                                  body_camera = factor(body_camera),
-                                  arms_category = factor(arms_category))
+## --- Data preprocessing and wrangling
+## Add full names of state
+shootings <- shootings %>%
+  left_join(us_states, by = c("state" = "Code")) %>%
+  select(date, State) %>%
+  rename(state = State)
 
-## Filter to 2016
-shootings_2016 <- shootings %>% filter(date >= "2016-01-01" & date <= "2016-12-31") 
+## Filter to 2019
+shootings_2019 <- shootings %>% 
+  filter(date >= "2019-01-01" & date <= "2019-12-31") 
 
-## Calculate total
-state_total <- shootings_2016 %>% group_by(state) %>% summarise(total = n())
+## Count total per state
+shootings_state <- shootings_2019 %>%
+  group_by(state) %>%
+  summarise(total_per_state = n())
 
-## Aggregate data
-us_state_total <- state_total %>% left_join(us_states_map, by = c("state" = "abbr"))
+## Add population
+shootings_state <- shootings_state %>%
+  left_join(us_pop, by = c("state" = "STATE")) %>%
+  select(state, total_per_state, POPESTIMATE2019) %>%
+  rename(population = POPESTIMATE2019)
+
+## Calculate per 100,000 of population
+shootings_state <- shootings_state %>%
+  mutate(total_per_pop = round(total_per_state*(100000/population), 2))
+
+## Combine with map
+shootings_state_map <- us_map %>% 
+  left_join(shootings_state, by = "state")
+
+## Replace NAs
+shootings_state_map[is.na(shootings_state_map)] <- 0
 ```
 
 ```{r}
 ## --- Plot
-ggplot(us_state_total, 
+ggplot(shootings_state_map, 
              aes(x = long, y = lat, group = group)) + 
   geom_polygon(color = "black", size = 0.25, 
-               aes(group = group, fill = total)) + 
-  labs(title = "How many police shootings were there in 2016?",
+               aes(group = group, fill = total_per_pop)) + 
+  labs(title = "How many police shootings were there in 2019?",
        caption = "Source: Ahsen Nazir | Kaggle",
-       fill = "Number of \nShootings") +
+       fill = "Per 100k of\npopulation") +
   scale_fill_distiller(palette = "OrRd", direction = 1) +
   theme_light(base_family = "Regular 400") +
   theme(axis.text = element_blank(),
