@@ -1,5 +1,6 @@
 ---
-title: "week-2"
+title: "Bee Colonies | Week 2"
+subtitle: "Tidy Tuesday"
 author: "Michelle Ohh"
 date: "1/13/2022"
 output: html_document
