@@ -1,0 +1,131 @@
+---
+title: "week-2"
+author: "Michelle Ohh"
+date: "1/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## --- Libraries
+library(tidyverse)
+library(geojsonio)
+library(broom)
+library(rgeos)
+library(gganimate)
+library(PNWColors)
+
+'%!in%' <- function(x,y)!('%in%'(x,y)) # function
+
+options(scipen=999) # disable scientific format
+```
+
+```{r}
+## --- Read in data
+tuesdata <- tidytuesdayR::tt_load('2022-01-11')
+
+colony <- tuesdata$colony
+stressor <- tuesdata$stressor
+```
+
+```{r}
+## --- Data pre processing
+## Add quarters
+colony <- colony %>% 
+  mutate("quarter" = case_when(
+    months == "January-March" ~ "Q1",
+    months == "April-June" ~ "Q2",
+    months == "July-September" ~ "Q3",
+    months == "October-December" ~ "Q4"))
+
+stressor <- stressor %>% 
+  mutate("quarter" = case_when(
+    months == "January-March" ~ "Q1",
+    months == "April-June" ~ "Q2",
+    months == "July-September" ~ "Q3",
+    months == "October-December" ~ "Q4"))
+
+## Factorise
+colony <- colony %>% 
+  mutate(year = factor(year),
+         months = factor(months),
+         state = factor(state),
+         quarter = factor(quarter))
+
+## Filter out "Other States" and "United States"
+colony <- colony %>% filter(state != "Other States",
+                            state != "United States")
+
+## Average percentage loss
+colony <- colony %>% 
+  group_by(year, state) %>% 
+  mutate(average_lost_percentage = mean(colony_lost_pct)) %>% 
+  relocate(average_lost_percentage, 
+           .after = state)
+```
+
+```{r}
+## --- USA hexgrid plot data preprocessing
+## Pull states
+states <- colony %>% distinct(state) %>% pull()
+
+## Read in USA hexgrid
+spdf <- geojson_read(here::here("2022/week-2/data/us_states_hexgrid.geojson"), what = "sp")
+
+## Transform into data frame
+spdf@data <- spdf@data %>%
+  mutate(google_name = gsub(" \\(United States\\)", "", google_name))
+
+spdf_fortified <- tidy(spdf, region = "google_name")
+
+## Filter states
+spdf_fortified <- spdf_fortified %>% filter(id %in% states)
+
+## Combine dataset
+colony <- spdf_fortified %>% 
+  left_join(. , colony, by = c("id" = "state"))
+
+## --- Labels for hexagon states
+## Calculate the centroid of each hexagon to add the label:
+centers <- cbind.data.frame(data.frame(gCentroid(spdf, byid = TRUE), id = spdf@data$iso3166_2))
+
+## Filter states
+centers <- centers %>% filter(id %!in% c("AK", "DC", "DE", "NH", "NV", "RI"))
+```
+
+```{r}
+## --- Plot
+p <- ggplot() +
+  geom_polygon(data = colony, aes(fill = average_lost_percentage, x = long, y = lat, group = group)) +
+  geom_text(data = centers, aes(x = x, y = y, label = id), color = "white", size = 3) +
+  ggtitle('Average Colony Loss in {closest_state}') +
+  labs(caption = "Source: USDA | #TidyTuesday Week 2") +
+  scale_fill_gradientn(colors = rev(pnw_palette(name = "Mushroom")),
+                       name = "Percentage") +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.caption = element_text(hjust = 0, size = 8),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 15)) +
+  coord_map()
+
+## --- Animation
+## Set animation size and resolution 
+options(gganimate.dev_args = list(width = 7, height = 5, units = 'in', res = 540))
+
+## Animate
+anim <- p + transition_states(year,
+                      transition_length = 2,
+                      state_length = 1)
+
+
+## --- Save animation
+anim_save("bee.gif", animation = last_animation(), width = 400, ani.height = 300)
+```
+
+
+
+
+
