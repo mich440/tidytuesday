@@ -114,7 +114,7 @@ p <- ggplot() +
 
 ## --- Animation
 ## Set animation size and resolution 
-options(gganimate.dev_args = list(width = 7, height = 5, units = 'in', res = 540))
+options(gganimate.dev_args = list(width = 6, height = 4, units = 'in', res = 200))
 
 ## Animate
 anim <- p + transition_states(year,
@@ -123,7 +123,7 @@ anim <- p + transition_states(year,
 
 
 ## --- Save animation
-anim_save("bee.gif", animation = last_animation(), width = 400, ani.height = 300)
+anim_save("bee.gif", animation = last_animation())
 ```
 
 
