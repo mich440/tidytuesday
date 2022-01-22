@@ -1,0 +1,127 @@
+---
+title: "Chocolate Ratings | Week 3"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+## --- Libraries
+library(tidyverse)
+library(stringr)
+
+library(showtext)
+font_add_google("Bubblegum Sans", "Regular 400")
+font_add_google("Roboto Condensed", "Bold 700")
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+## --- Read in data
+tuesdata <- tidytuesdayR::tt_load('2022-01-18')
+
+chocolate <- tuesdata$chocolate
+```
+
+```{r}
+## --- Data Preprocessing & Wrangling
+chocolate <- chocolate %>% 
+  separate(cocoa_percent,
+           into = c("cocoa"),
+           sep = "%",
+           remove = TRUE) %>% 
+  mutate(cocoa = as.numeric(cocoa))
+
+## Create cocoa groups
+chocolate <- chocolate %>% 
+  mutate(cocoa_group = case_when(
+    between(cocoa, 41, 50) ~ "41 - 50",
+    between(cocoa, 51, 60) ~ "51 - 60",
+    between(cocoa, 61, 65) ~ "61 - 65",
+    between(cocoa, 66, 70) ~ "66 - 70",
+    between(cocoa, 71, 75) ~ "71 - 75",
+    between(cocoa, 76, 80) ~ "76 - 80",
+    between(cocoa, 81, 90) ~ "81 - 90",
+    between(cocoa, 91, 100) ~ "91 - 100")) %>% 
+  mutate(cocoa_group = factor(cocoa_group))
+
+## Top 10 countries of bean origin
+top10 <- chocolate %>% 
+  group_by(country_of_bean_origin) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count)) %>% 
+  slice(1:10) %>% 
+  pull(country_of_bean_origin)
+
+## Filter to top 10 countries of bean origin
+chocolate_filtered <- chocolate %>% 
+  filter(country_of_bean_origin %in% top10)
+
+## Count how many chocolates per country
+chocolate_filtered <- chocolate_filtered %>% 
+  group_by(country_of_bean_origin) %>% 
+  mutate(count_per_country = n()) %>% 
+  ungroup()
+
+## Count how many chocolates per country and cocoa
+chocolate_filtered <- chocolate_filtered %>% 
+  group_by(country_of_bean_origin, cocoa) %>% 
+  mutate(count_per_cocoa = n()) %>% 
+  ungroup()
+
+## Calculate the proportion of cocoa beans per country of bean origin
+chocolate_filtered <- chocolate_filtered %>% 
+  mutate(proportion = count_per_cocoa / count_per_country,
+         percentage = round((count_per_cocoa / count_per_country) * 100 , 2))
+
+## Replace missing group 
+chocolate_filtered[is.na(chocolate_filtered)] <- "51 - 60" # the cocoa % is 60.5
+
+## Minimise dataset
+chocolate_filtered <- chocolate_filtered %>% 
+  select(country_of_bean_origin, cocoa, rating, cocoa_group, count_per_country,
+         count_per_cocoa, proportion, percentage)
+```
+
+```{r}
+## --- Plot
+ggplot(data = chocolate_filtered) + 
+  geom_tile(aes(x = cocoa_group, 
+                y = fct_reorder(country_of_bean_origin, count_per_country),
+                fill = cocoa_group),
+            colour = "black") + 
+  geom_jitter(aes(x = cocoa_group,
+                  y = fct_reorder(country_of_bean_origin, count_per_country)),
+              alpha = 0.5, color = "#e6bf98") +
+  scale_fill_manual(values = c("#bf752d", "#ab6928", "#975d23", "#7d4d1d", "#694018",
+                               "#5c3815", "#482c11", "#34200c")) +
+  labs(title = "Where are the cacao beans of your chocolate bars from?",
+       subtitle = "These are the top 10 countries with the most sourced cacao beans.",
+       caption = "Source: Flavors of Cacao by way of Georgios and Kelsey | #TidyTuesday Week 3",
+       x = "Cocoa Percentage") +
+  theme_minimal() +
+  theme(axis.title.y = element_blank(),
+        axis.text = element_text(color = "white", face = "bold",
+                                 family = "Bold 700"),
+        axis.title.x = element_text(color = "white",
+                                    family = "Bold 700"),
+        legend.position = "none",
+        panel.grid = element_blank(),
+        plot.background = element_rect(fill = "#321a5b"),
+        plot.caption = element_text(family = "Bold 700", 
+                                    size = 6, color = "white"), 
+        plot.subtitle = element_text(family = "Regular 400", color = "#476a9f",
+                                     hjust = -0.2, size = 11),
+        plot.title = element_text(family = "Regular 400", 
+                                  face = "bold", color = "#9E7C46",
+                                  hjust = -0.6, size = 20))
+
+## --- Save plot
+ggsave("chocolate.png", width = 8, height = 5, units = "in")
+```
+
