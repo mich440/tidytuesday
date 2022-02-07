@@ -164,3 +164,34 @@ ggdraw(plot) +
 ## --- Save plot
 ggsave("dog.png", width = 35, height = 25, units = "cm")
 ```
+
+```{r}
+## --- Plot with dog icons
+ggdraw(plot) +
+  theme(plot.margin = margin(1, 1, 0, 1, unit = "cm"),
+        plot.background = element_rect(fill = "#f4f1eb")) +
+  draw_text(text = "Characteristics of the Top Terriers in 2020", 
+            x = 0.5, y = 1.015, size = 20, family = "Regular 400") +
+  draw_text(text = "Each characteristic is rated from 1 (low) to 5 (high).", 
+            x = 0.5, y = 0.985, size = 12, family = "Light 300") +
+  draw_text(text = "Source: American Kennel Club courtesy of @KKakey | #TidyTuesday Week 5",
+            x = 0.84, y = 0.02, size = 10, family = "roboto condensed") + 
+  draw_text(text = "Icons by Freepik from Flaticons.com", 
+            x = 0.758, y = 0.037, size = 10, family = "roboto condensed") +
+  draw_image(here::here("2022/week-5/image/yorkie.png"), x = 0.119, y = 0.779, width = 0.025, height = 0.025) + # yorkie
+  draw_image(here::here("2022/week-5/image/boston-terrier.png"), x = 0.366, y = 0.779, width = 0.025, height = 0.025) + # boston
+  draw_image(here::here("2022/week-5/image/westie.png"), x = 0.613, y = 0.779, width = 0.025, height = 0.025) + # westie 
+  draw_image(here::here("2022/week-5/image/scottish-terrier.png"), x = 0.8605, y = 0.779, width = 0.025, height = 0.025) + # scottish
+  draw_image(here::here("2022/week-5/image/soft-terrier.png"), x = 0.119, y = 0.473, width = 0.025, height = 0.025) + # soft
+  draw_image(here::here("2022/week-5/image/airedale-terrier.png"), x = 0.366, y = 0.473, width = 0.025, height = 0.025) + # airedale
+  draw_image(here::here("2022/week-5/image/bull-terrier.png"), x = 0.613, y = 0.473, width = 0.025, height = 0.025) + # bull
+  draw_image(here::here("2022/week-5/image/jack-russell-terrier.png"), x = 0.8605, y = 0.473, width = 0.025, height = 0.025) +# russell
+  draw_image(here::here("2022/week-5/image/cairn-terrier.png"), x = 0.119, y = 0.167, width = 0.025, height = 0.025) + # cairn 
+  draw_image(here::here("2022/week-5/image/staff.png"), x = 0.366, y = 0.167, width = 0.025, height = 0.025) + # staffy
+  draw_image(here::here("2022/week-5/image/american-staff.png"), x = 0.613, y = 0.167, width = 0.025, height = 0.025) + # american staffy
+  draw_image(here::here("2022/week-5/image/rat-terrier.png"), x = 0.8605, y = 0.167, width = 0.025, height = 0.025) # rat
+
+## --- Save plot
+ggsave("dog_icon.png", width = 35, height = 25, units = "cm")
+```
+
