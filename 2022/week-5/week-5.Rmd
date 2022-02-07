@@ -192,6 +192,6 @@ ggdraw(plot) +
   draw_image(here::here("2022/week-5/image/rat-terrier.png"), x = 0.8605, y = 0.167, width = 0.025, height = 0.025) # rat
 
 ## --- Save plot
-ggsave("dog_icon.png", width = 35, height = 25, units = "cm")
+ggsave("dogicon.png", width = 35, height = 25, units = "cm")
 ```
 
