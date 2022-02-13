@@ -1,0 +1,136 @@
+---
+title: "Tuskegee Airmen Challenge | Week 6"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+date: "2/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## --- Load libraries
+library(tidyverse)
+library(cowplot)
+
+library(showtext)
+font_add_google("Almendra Display", "Regular 400")
+font_add_google("Chakra Petch", "Light 300")
+font_add_google("Chakra Petch", "Medium 500")
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+## --- Read in data
+tuesdata <- tidytuesdayR::tt_load("2022-02-08")
+
+airmen <- tuesdata$airmen
+```
+
+```{r}
+## --- Data wrangling and preprocessing
+# Filter NA graduation dates
+airmen_df <- airmen %>% filter(!is.na(graduation_date))
+
+# Replacing NAs with "N/A"
+airmen_df$rank_at_graduation[(is.na(airmen_df$rank_at_graduation))] <- "N/A"
+
+# Recoding inconsistencies
+airmen_df <- airmen_df %>% 
+  mutate(
+    # Rename Capt to Captain
+    rank_at_graduation = if_else(rank_at_graduation == "Capt",
+                                 true = "Captain",
+                                 false = rank_at_graduation),
+    # Rename NAs / Unk to Unkown
+    rank_at_graduation = if_else(rank_at_graduation %in% c("N/A", "Unk"),
+                                 true = "Unknown",
+                                 false = rank_at_graduation),
+    # Recode spelling error
+    pilot_type = if_else(pilot_type == "Liason pilot",
+                         true = "Liaison pilot",
+                         false = pilot_type))
+
+
+# Factorise data
+airmen_df <- airmen_df %>% 
+  mutate(rank_at_graduation = factor(rank_at_graduation,
+                                     levels = c("Captain", "1st Lt", "2nd Lt", "Flight Officer", "Unknown")),
+         pilot_type = factor(pilot_type,
+                             levels = c("Liaison pilot", "Single engine", "Twin engine")))
+
+# Add year
+airmen_df <- airmen_df %>% 
+  mutate(year = year(graduation_date),
+         yday = yday(graduation_date)) %>% 
+  arrange(year, yday) %>% 
+  select(graduation_date, year, yday, rank_at_graduation, pilot_type)
+
+# Add war periods
+airmen_df <- airmen_df %>% 
+  mutate(war = case_when(
+    between(year, 1942, 1945) ~ "World War II",
+    between(year, 1946, 1948) ~ "Post War"
+  ))
+
+# Summarise for plot
+plot_df <- airmen_df %>% 
+  group_by(rank_at_graduation, war, pilot_type) %>% 
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  group_by(rank_at_graduation, war) %>% 
+  mutate(proportion = round(n / sum(n), 2),
+         percentage = round((n / sum(n)) * 100 , 2)) %>% 
+  ungroup() %>% 
+  filter(rank_at_graduation != "Captain",
+         rank_at_graduation != "Unknown")
+```
+
+```{r}
+## --- Plot
+plot <- plot_df %>%
+  ggplot() +
+  geom_col(aes(x = war, y = n, fill = pilot_type),
+           position = "fill",
+           width = 0.4,
+           key_glyph = draw_key_point) + 
+  guides(fill = guide_legend(override.aes = list(shape = 21, size = 5))) +
+  scale_fill_manual(values = c("#158613", "#f7d20e", "#d81f42")) +
+  theme(legend.position = c(0.4, 1),
+        legend.direction = "horizontal",
+        legend.key = element_blank(),
+        legend.text = element_text(family = "Light 300"),
+        legend.background = element_rect(fill = "#e0d4c7"),
+        legend.title = element_blank(),
+        plot.background = element_rect(fill = "#e0d4c7"),
+        plot.margin = margin(3, 2.5, 2, 3, unit = "cm"),
+        panel.background = element_rect(fill = "#e0d4c7"),
+        panel.grid = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 8, family = "Light 300"),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        strip.text = element_blank()
+        ) +
+  coord_flip() +
+  facet_grid(rank_at_graduation ~ .)
+
+# Main plot
+ggdraw(plot) +
+  draw_text(text = "1st Lt", x = 0.07, y = 0.75, size = 10, family = "Light 300") +
+  draw_text(text = "{", x = 0.12, y = 0.77, size = 90, family = "Regular 400") +
+  draw_text(text = "2nd Lt", x = 0.07, y = 0.482, size = 10, family = "Light 300") +
+  draw_text(text = "{", x = 0.12, y = 0.501, size = 90, family = "Regular 400") +
+  draw_text(text = "Flight\nOfficer", x = 0.07, y = 0.211, size = 10, family = "Light 300") +
+  draw_text(text = "{", x = 0.12, y = 0.233, size = 90, family = "Regular 400") +
+  draw_text(text = "TUSKEGEE MEN GRADUATES", x = 0.5, y = 0.93, size = 15, family = "Medium 500", fontface = "bold") + # title
+  draw_text(text = "Source: Commemorative Airforce (CAF) by way of the VA-TUG", x = 0.792, y = 0.025, size = 8, family = "Light 300") + # caption
+  draw_text(text = "#TidyTuesday Week 6 | #Tuskegee Airmen Challenge", x = 0.816, y = 0.01, size = 8, family = "Light 300") 
+  
+## --- Save plot
+ggsave("tac.png", width = 20, height = 25, unit = "cm")
+```
+
