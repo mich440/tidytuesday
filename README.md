@@ -6,6 +6,9 @@ Contributions to the [#TidyTuesday](https://github.com/rfordatascience/tidytuesd
 
 Feedbacks and tips are very much appreciated at [Twitter](https://twitter.com/mich_440)
 
+## [2022 - Week 6](https://github.com/mich440/tidytuesday/blob/main/2022/week-6/week-6.Rmd)
+![tsaplot](https://github.com/mich440/tidytuesday/blob/main/2022/week-6/tac.png)
+
 ## [2022 - Week 5](https://github.com/mich440/tidytuesday/blob/main/2022/week-5/week-5.Rmd)
 ![dogsplot](https://github.com/mich440/tidytuesday/blob/main/2022/week-5/dog_icon.png)
 
