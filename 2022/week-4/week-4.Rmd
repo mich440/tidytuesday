@@ -1,0 +1,106 @@
+---
+title: "Board Game Ratings | Week 4"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## --- Libraries
+library(tidyverse)
+
+library(showtext)
+font_add_google("Roboto Condensed", "roboto condensed")
+font_add_google("Pacifico", "Regular 400")
+font_add_google("Road Rage")
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+## --- Read in data
+tuesdata <- tidytuesdayR::tt_load("2022-01-25")
+
+details <- tuesdata$details
+ratings <- tuesdata$ratings
+```
+
+```{r}
+## --- Data Wrangling and preprocessing
+
+# Separate categories
+details_df <- details %>%
+  mutate(boardgamecategory = str_remove_all(boardgamecategory, "\\[|\\]")) %>% # remove [ or ]
+  separate_rows(boardgamecategory, sep = ",\\s") %>% # separate the words
+  mutate(boardgamecategory = str_remove_all(boardgamecategory, "\\'")) %>% # remove apostrophe
+  mutate(boardgamecategory = str_remove_all(boardgamecategory, "\"" ))
+
+# Filter the top 5 the most common categories
+top5 <- details_df %>%
+  group_by(boardgamecategory) %>% 
+  summarise(count = n()) %>% arrange(desc(count)) %>% 
+  slice(1:5) %>% 
+  pull(boardgamecategory)
+
+# Filter to card games
+cardgame <- details_df %>% 
+  filter(boardgamecategory == "Card Game") %>% 
+  left_join(ratings, by = "id")
+
+# Filter to card games published after 2000
+cardgame_2000 <- cardgame %>% 
+  filter(yearpublished >= 2000)
+
+# Extract the min and max ratings
+cardgame_df <- cardgame_2000 %>% 
+  group_by(yearpublished) %>% 
+  summarise(min = min(average),
+            max = max(average))
+
+# Factorise year
+cardgame_df <- cardgame_df %>% 
+  mutate(yearpublished = factor(yearpublished))
+```
+
+```{r}
+## --- Plot
+# Main plot
+plot <- ggplot(cardgame_df) +
+  geom_segment(aes(x = min, xend = max, y = yearpublished, yend = yearpublished),
+               colour = "#40405a", size = 0.5) +
+  geom_point(aes(x = min, y = yearpublished), colour = "#936028", size = 2.5) +
+  geom_point(aes(x = max, y = yearpublished), colour = "#936028", size = 2.5) +
+  scale_y_discrete(labels = cardgame_df$yearpublished, breaks = cardgame_df$yearpublished) + 
+  labs(x = "Rating", y = "Year Published", title = "Ratings of Card Games",
+       subtitle = "The minimum and maximum ratings of the card games published in each year, on a scale from 1 - 10.",
+       caption = "Source: Kaggle by way of Board Games Geek | #TidyTuesday Week 4") +
+  theme_minimal() + 
+  theme(axis.title = element_text(family = "Regular 400", colour = "#413f6b"),
+        axis.text = element_text(family = "roboto condensed"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_line(colour = "#c9d4d8"),
+        plot.background = element_rect(fill = "#8cb4c4", colour = "#88b1c2"),
+        plot.caption = element_text(family = "roboto condensed", size = 7),
+        plot.subtitle = element_text(size = 9, hjust = 0.5, vjust = -0.7, family = "roboto condensed"),
+        plot.title = element_text(family = "Road Rage", size = 35, hjust = 0.5, colour = "#e5ce57"))
+
+# Annotations
+ggdraw(plot) +
+  draw_text(text = "Law & Order\nGame", x = 0.17, y = 0.10, size = 12, family = "Road Rage", colour = "#56462a") + 
+  draw_text(text = "System Gateway\n(Fan Expansion)", x = 0.93, y = 0.63, size = 12, family = "Road Rage", colour = "#56462a") +
+  annotate(geom = "curve", x = 0.13, xend = 0.105, y = 0.13, yend = 0.245, curvature = -0.45, arrow = arrow(length = unit(2.5, "mm")), size = 0.2, colour = "#40405a") +
+  annotate(geom = "curve", x = 0.97, xend = 0.96, y = 0.68, yend = 0.81, curvature = 0.5, arrow = arrow(length = unit(2.5, "mm")), size = 0.2, colour = "#40405a")
+
+
+## --- Save Plot
+ggsave("cardgames.png", width = 8, height = 5, units = "in")
+```
+
+
+
+
