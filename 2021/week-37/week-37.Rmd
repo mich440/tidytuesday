@@ -1,0 +1,151 @@
+---
+title: "week-36"
+author: "Michelle Ohh"
+date: "2/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## --- Load libraries
+library(tidyverse)
+library(ggstream)
+library(cowplot)
+
+library(showtext)
+font_add_google("Rufina", "Bold 700")
+font_add_google("Bangers", "Regular 400")
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+## --- Read in data
+tuesdata <- tidytuesdayR::tt_load(2021, week = 37)
+
+drivers <- tuesdata$drivers
+races <- tuesdata$races
+results <- tuesdata$results
+constructors <- tuesdata$constructors
+```
+
+```{r}
+## --- Data wrangling and preprocessing
+# Driver names
+driver_id <- c("bottas", "hamilton", "max_verstappen", "perez", "leclerc", "sainz", 
+               "norris", "ricciardo")
+
+# Filter drivers
+drivers_df <- drivers %>% 
+  filter(driverRef %in% driver_id) %>% 
+  select(driverId, surname)
+
+# Filter races in 2021
+races_df <- races %>% 
+  filter(year == 2021) %>% 
+  arrange(round) %>% 
+  select(raceId, year)
+
+# Merge data
+results_df <- results %>% 
+  right_join(drivers_df, by = "driverId") %>% 
+  right_join(races_df, by = "raceId") %>% 
+  left_join(constructors, by = "constructorId")
+
+# Remove NAs
+results_df <- results_df %>% na.omit()
+
+# Select relevant columns
+results_df <- results_df %>% select(year, raceId, points, surname, name)
+
+# Create df to make plot nicer
+smooth_df <- results_df %>% 
+  group_by(surname, name) %>% 
+  slice(1:4) %>% 
+  mutate(raceId = c(
+    min(results_df$raceId) - 10,
+    min(results_df$raceId) - 5,
+    max(results_df$raceId) + 5,
+    max(results_df$raceId) + 10
+  ),
+  points = c(0, 0.0001, 0.0001, 0)
+  ) %>% 
+  ungroup()
+
+# Merge final data frame
+final_df <- results_df %>% bind_rows(smooth_df)
+
+# Levels for teams and drivers
+final_df <- final_df %>% mutate(name = factor(name, levels = c("Mercedes", "Red Bull", "Ferrari", "McLaren")),
+                                surname = factor(surname, levels = c("Hamilton", "Bottas", "Verstappen",
+                                                                     "Pérez", "Leclerc", "Sainz",
+                                                                     "Norris", "Ricciardo")))
+```
+
+```{r}
+## --- Plot
+# Plot adjustments
+# Palette colours
+colour <- c("#888888", "#009377", "#0c3474", "#d40909", "#e42d05", "#fae900", "#f49404", "#3e89bc")
+
+# Driver names
+names <- tibble(
+  raceId = c(rep(1047, 8)),
+  points = c(rep(c(7, -7), 4)),
+  surname = c("Hamilton", "Bottas", "Verstappen", "Pérez", "Leclerc", "Sainz", "Norris", "Ricciardo"),
+  name = c("Mercedes", "Mercedes", "Red Bull", "Red Bull", "Ferrari", "Ferrari", "McLaren", "McLaren")) %>% 
+  mutate(name = factor(name, levels = c("Mercedes", "Red Bull", "Ferrari", "McLaren")))
+
+# Main plot
+plot <- ggplot(final_df, aes(x = raceId, y = points, fill = surname)) +
+  geom_stream(bw = 0.6) +
+  geom_stream(geom = "contour", # adds black contour to each area as a highlighting effect
+              color = "black",
+              size = 1.2, 
+              bw = 0.6) +
+  geom_text(data = distinct(final_df, name, surname), aes(x = 1045, y = 16, label = name), size = 7, family = "Regular 400") +
+  geom_text(data = names, aes(x = raceId, y = points, label = surname), size = 3.5, family = "Bold 700") +
+  geom_vline(data = tibble(x = c(1052, 1055, 1060, 1064)),
+             aes(xintercept = x),
+             inherit.aes = FALSE,
+             color = "gray88",
+             size = 0.4,
+             linetype = "dotted") +
+  scale_fill_manual(values = colour) +
+  labs(title = "              2021 Season", # blank space for logo
+       subtitle = "Points earned by drivers in each race.",
+       caption = "Source: Ergast API by way of Data is Plural | #TidyTuesday Week 37") +
+  theme_minimal() +
+  theme(axis.text.y = element_blank(),
+        axis.text.x = element_text(family = "Bold 700", size = 6),
+        axis.title = element_blank(),
+        panel.background = element_rect(fill = NA, color = NA),
+        panel.grid = element_blank(),
+        panel.spacing.y = unit(0, "lines"),
+        plot.background = element_rect(fill = "gray88", colour = "gray88"),
+        plot.caption = element_text(size = 6, family = "Bold 700"),
+        plot.title = element_text(hjust = 0.5, size = 25, face = "bold", family = "Regular 400"),
+        plot.subtitle = element_text(hjust = 0.5, size = 10, family = "Bold 700"),
+        legend.position = "none",
+        strip.text = element_blank()) + 
+  scale_x_continuous(breaks = c(1052, 1055, 1060, 1064),
+                     labels = glue::glue("{races}\nGP",
+                                         races = c("Bahrain", "Spanish", "Austrian", "Dutch"))) +
+  facet_grid(name~.,
+             scales = "free_y",
+             space = "free")
+
+# Add F1 logo
+ggdraw(plot) +
+  draw_text(text = "Note: The races are only updated until the Dutch GP\n", x = 0.5, y = 0.933, size = 6, family = "Bold 700") +
+  draw_image(here::here("2021/week-37/images/logo.png"), x = 0.345, y = 0.478, width = 0.12)
+
+## --- Save plot
+ggsave("formula1.png", width = 20, height = 25, unit = "cm")
+```
+
+
+
