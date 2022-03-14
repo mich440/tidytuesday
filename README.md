@@ -20,3 +20,6 @@ Feedbacks and tips are very much appreciated at [Twitter](https://twitter.com/mi
 
 ## [2021 - Week 51](https://github.com/mich440/tidytuesday/blob/main/2021/week-51/week-51.Rmd)
 ![spicegirlsplot](https://github.com/mich440/tidytuesday/blob/main/2021/week-51/spicegirls.png)
+
+## [2021 - Week 37](https://github.com/mich440/tidytuesday/blob/main/2021/week-37/week-37.Rmd)
+![f1plot](https://github.com/mich440/tidytuesday/blob/main/2021/week-37/formula1.png)
