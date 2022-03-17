@@ -7,19 +7,31 @@ Contributions to the [#TidyTuesday](https://github.com/rfordatascience/tidytuesd
 Feedbacks and tips are very much appreciated at [Twitter](https://twitter.com/mich_440)
 
 ## [2022 - Week 6](https://github.com/mich440/tidytuesday/blob/main/2022/week-6/week-6.Rmd)
-![tsaplot](https://github.com/mich440/tidytuesday/blob/main/2022/week-6/tac.png)
+<p align="center">
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-6/tac.png" width = 45%/>
+</p>
 
 ## [2022 - Week 5](https://github.com/mich440/tidytuesday/blob/main/2022/week-5/week-5.Rmd)
-![dogsplot](https://github.com/mich440/tidytuesday/blob/main/2022/week-5/dog_icon.png)
+<p align="center">
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-5/dog_icon.png" width = 70%/>
+</p>
 
 ## [2022 - Week 4](https://github.com/mich440/tidytuesday/blob/main/2022/week-4/week-4.Rmd)
-![cardsplot](https://github.com/mich440/tidytuesday/blob/main/2022/week-4/cardgames.png)
+<p align="center">
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-4/cardgames.png" width = 70%/>
+</p>
 
 ## [2022 - Week 3](https://github.com/mich440/tidytuesday/blob/main/2022/week-3/week-3.Rmd)
-![chocolatesplot](https://github.com/mich440/tidytuesday/blob/main/2022/week-3/chocolate.png)
+<p align="center">
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-3/chocolate.png" width = 70%/>
+</p>
 
 ## [2021 - Week 51](https://github.com/mich440/tidytuesday/blob/main/2021/week-51/week-51.Rmd)
-![spicegirlsplot](https://github.com/mich440/tidytuesday/blob/main/2021/week-51/spicegirls.png)
+<p align="center">
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2021/week-51/spicegirls.png" width = 70%/>
+</p>
 
 ## [2021 - Week 37](https://github.com/mich440/tidytuesday/blob/main/2021/week-37/week-37.Rmd)
-![f1plot](https://github.com/mich440/tidytuesday/blob/main/2021/week-37/formula1.png)
+<p align="center">
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2021/week-37/formula1.png" width = 45%/>
+</p>
