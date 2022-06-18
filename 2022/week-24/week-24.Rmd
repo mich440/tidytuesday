@@ -72,7 +72,7 @@ ggplot(wet_df) +
   geom_col(data = wet_df, aes(x = date, y = value, fill = name)) +
   labs(title = "U.S. Drought Conditions", subtitle = "Precipitation Levels between 2010 - 2020",
        caption = "Source: National Integrated Drought Information System | Credit : Spencer Schien | #TidyTuesday Week 24") +
-  scale_fill_manual(values = met.brewer(name = "Hokusai2", direction = -1),
+  scale_fill_manual(values = met.brewer(name = "Hokusai2"),
                    labels = c("Abnormal", "Moderate", "Severe", "Extreme", "Exceptional")) +
   facet_geo(~state, grid = us_grid, label = "name") +
   theme(axis.title = element_blank(),
@@ -106,7 +106,7 @@ wet_df %>%
   geom_col(data = wet_df, aes(x = date, y = value, fill = name)) +
   labs(title = "Michigan Precipitation Levels", subtitle = "Between 2010 - 2020", 
        x = "Year", y = "Standardised Precipitation Index (SPI)") +
-  scale_fill_manual(values = met.brewer(name = "Hokusai2", direction = -1),
+  scale_fill_manual(values = met.brewer(name = "Hokusai2"),
                    labels = c("Abnormal", "Moderate", "Severe", "Extreme", "Exceptional")) +
   scale_y_continuous(limits = c(0, 15500), expand = c(0, 0)) + 
   scale_x_continuous(expand = c(0, 0)) +
