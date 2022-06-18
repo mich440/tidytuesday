@@ -1,0 +1,135 @@
+---
+title: "US Drought | Week 24"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(MetBrewer)
+library(geofacet)
+library(tidyverse)
+library(lubridate)
+library(showtext)
+
+font_add_google("PT Serif")
+```
+
+```{r}
+# --- data
+tuesdata <- tidytuesdayR::tt_load("2022-06-14")
+
+drought <- tuesdata$drought
+drought_fips <-tuesdata$`drought-fips`
+```
+
+```{r}
+# --- data cleaning
+drought <- drought %>%
+  mutate(DATE = str_remove(DATE, "d_"), # remove inconsistency in DATE
+         date = ymd(DATE), # convert to date object
+         year = year(date)) %>% 
+  relocate(c(date, year), .before = D0) %>% 
+  select(-2) %>% 
+  mutate(state = str_to_title(state), # change to capital
+         state = str_replace(state, "-", " ")) 
+
+# --- data preprocessing
+# drought season 
+drought_season <- drought %>% 
+  select(2:8, state) %>%
+  pivot_longer(3:7)
+
+# wet season
+wet_season <- drought %>% 
+  select(date, year, 10:15) %>% 
+  pivot_longer(3:7)
+
+# filter observations between 2010 and 2021
+wet_df <- wet_season %>% 
+  filter(year > 2009 & year < 2021)
+```
+
+```{r}
+# --- us grid
+states <- wet_season %>% 
+  distinct(state) %>% 
+  mutate(state = str_replace(state, "-", " ")) %>% 
+  pull(state)
+
+# filter names
+us_grid <- us_state_grid1 %>% 
+  filter(name %in% states)
+```
+
+```{r}
+# --- plot
+ggplot(wet_df) +
+  geom_col(data = wet_df, aes(x = date, y = value, fill = name)) +
+  labs(title = "U.S. Drought Conditions", subtitle = "Precipitation Levels between 2010 - 2020",
+       caption = "Source: National Integrated Drought Information System | Credit : Spencer Schien | #TidyTuesday Week 24") +
+  scale_fill_manual(values = met.brewer(name = "Hokusai2", direction = -1),
+                   labels = c("Abnormal", "Moderate", "Severe", "Extreme", "Exceptional")) +
+  facet_geo(~state, grid = us_grid, label = "name") +
+  theme(axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.key = element_rect(colour = NA, fill = NA),
+        legend.key.height = unit(0.4, "cm"),
+        legend.key.width = unit(0.4, "cm"),
+        legend.position = "bottom",
+        legend.background = element_rect(fill = "#cfd4d9", colour = "#cfd4d9"),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 7, family = "PT Serif"),
+        panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank(),
+        plot.background = element_rect(fill = "#cfd4d9", colour = "#cfd4d9"),
+        plot.title = element_text(hjust = 0.5, size = 14, family = "PT Serif", face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, size = 8, family = "PT Serif"),
+        plot.caption = element_text(size = 6, family = "PT Serif"),
+        strip.text = element_text(size = 5, colour = "white", face = "bold", family = "PT Serif"),
+        strip.background = element_rect(fill = "black"))
+
+# --- save plot
+ggsave("drought_map.png", height = 7, width = 11)
+```
+
+```{r}
+#--- plot michigan
+wet_df %>% 
+  filter(state == "Michigan") %>% 
+  ggplot() +
+  geom_col(data = wet_df, aes(x = date, y = value, fill = name)) +
+  labs(title = "Michigan Precipitation Levels", subtitle = "Between 2010 - 2020", 
+       x = "Year", y = "Standardised Precipitation Index (SPI)") +
+  scale_fill_manual(values = met.brewer(name = "Hokusai2", direction = -1),
+                   labels = c("Abnormal", "Moderate", "Severe", "Extreme", "Exceptional")) +
+  scale_y_continuous(limits = c(0, 15500), expand = c(0, 0)) + 
+  scale_x_continuous(expand = c(0, 0)) +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "bottom", 
+        legend.key.height = unit(0.4, "cm"),
+        legend.key.width = unit(0.4, "cm"),
+        legend.key = element_rect(colour = NA, fill = NA),
+        legend.background = element_rect(fill = "#cfd4d9", colour = "#cfd4d9"),
+        legend.title = element_blank(),
+        legend.text = element_text(family = "PT Serif"),
+        panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank(),
+        plot.background = element_rect(fill = "#cfd4d9", colour = "#cfd4d9"),
+        plot.title = element_text(hjust = 0.5, size = 14, family = "PT Serif", face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, size = 8, family = "PT Serif"))
+
+# --- save plot
+ggsave("michigan.png", height = 5, width = 8)
+```
+
+
+
+
