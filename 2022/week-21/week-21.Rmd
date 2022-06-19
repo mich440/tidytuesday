@@ -1,0 +1,121 @@
+---
+title: "week-21"
+author: "Michelle Ohh"
+date: '2022-06-19'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(gt)
+library(gtExtras)
+library(tidyverse)
+library(showtext)
+
+font_add_google("Cormorant Garamond", "Regular 400")
+font_add_google("Cormorant Garamond", "SemiBold 600")
+```
+
+```{r}
+# --- data
+tuesdata <- tidytuesdayR::tt_load("2022-05-24")
+
+fifteens <- tuesdata$fifteens
+sevens <- tuesdata$sevens
+```
+
+```{r}
+# --- data preprocessing
+# filter to amsterdam world cup 
+ams_wc <- fifteens %>% 
+  mutate(year = year(date)) %>% 
+  filter(year == 1998 & tournament == "World Cup")
+
+# filter to home winners
+home_wins <- ams_wc %>% 
+  filter(team_1 == winner) %>% 
+  group_by(team_1) %>% 
+  mutate(total_wins = n()) %>% # count total wins
+  ungroup()
+
+# filter to top margin
+top_home_wins <- home_wins %>% 
+  arrange(desc(margin_of_victory)) %>% 
+  distinct(team_1, .keep_all = TRUE) # each team's highest margin
+
+# subset to relevant columns
+top_home_wins <- top_home_wins %>% 
+  select(total_wins, team_1, score_1, margin_of_victory, score_2, team_2)
+
+# rename columns
+top_home_wins <- top_home_wins %>% 
+  rename("Home Team" = team_1,
+         "Home Score" = score_1,
+         "Winning Margin" = margin_of_victory,
+         "Away Score" = score_2,
+         "Away Team" = team_2,
+         "Total Wins" = total_wins)
+
+# add flag images
+top_home_wins <- top_home_wins %>% 
+  mutate(`Home Flag` = case_when(str_detect(`Home Team`, "Australia") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Flag_of_Australia_%28converted%29.svg/510px-Flag_of_Australia_%28converted%29.svg.png",
+                               str_detect(`Home Team`, "Canada") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Flag_of_Canada_%28Pantone%29.svg/1920px-Flag_of_Canada_%28Pantone%29.svg.png",
+                               str_detect(`Home Team`, "England") ~ "https://upload.wikimedia.org/wikipedia/en/thumb/b/be/Flag_of_England.svg/510px-Flag_of_England.svg.png",
+                               str_detect(`Home Team`, "France") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Flag_of_France_%28lighter_variant%29.svg/500px-Flag_of_France_%28lighter_variant%29.svg.png",
+                               str_detect(`Home Team`, "Germany") ~ "https://upload.wikimedia.org/wikipedia/en/thumb/b/ba/Flag_of_Germany.svg/510px-Flag_of_Germany.svg.png",
+                               str_detect(`Home Team`, "Ireland") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Flag_of_Ireland.svg/510px-Flag_of_Ireland.svg.png",
+                               str_detect(`Home Team`, "Italy") ~ "https://upload.wikimedia.org/wikipedia/en/thumb/0/03/Flag_of_Italy.svg/510px-Flag_of_Italy.svg.png",
+                               str_detect(`Home Team`, "Kazakhstan") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Flag_of_Kazakhstan.svg/510px-Flag_of_Kazakhstan.svg.png",
+                               str_detect(`Home Team`, "Netherlands") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Flag_of_the_Netherlands.svg/510px-Flag_of_the_Netherlands.svg.png",
+                               str_detect(`Home Team`, "New Zealand") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Flag_of_New_Zealand.svg/510px-Flag_of_New_Zealand.svg.png",
+                               str_detect(`Home Team`, "Spain") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Bandera_de_Espa%C3%B1a.svg/400px-Bandera_de_Espa%C3%B1a.svg.png"),
+         `Away Flag` = case_when(str_detect(`Away Team`, "France") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Flag_of_France_%28lighter_variant%29.svg/500px-Flag_of_France_%28lighter_variant%29.svg.png",
+                               str_detect(`Away Team`, "Germany") ~ "https://upload.wikimedia.org/wikipedia/en/thumb/b/ba/Flag_of_Germany.svg/510px-Flag_of_Germany.svg.png",
+                               str_detect(`Away Team`, "Ireland") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Flag_of_Ireland.svg/510px-Flag_of_Ireland.svg.png",
+                               str_detect(`Away Team`, "Italy") ~ "https://upload.wikimedia.org/wikipedia/en/thumb/0/03/Flag_of_Italy.svg/510px-Flag_of_Italy.svg.png", 
+                               str_detect(`Away Team`, "Kazakhstan") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Flag_of_Kazakhstan.svg/510px-Flag_of_Kazakhstan.svg.png",
+                               str_detect(`Away Team`, "Russia") ~ "https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/Flag_of_Russia.svg/500px-Flag_of_Russia.svg.png",
+                               str_detect(`Away Team`, "Scotland") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Flag_of_Scotland.svg/510px-Flag_of_Scotland.svg.png",
+                               str_detect(`Away Team`, "Sweden") ~ "https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Flag_of_Sweden.svg/383px-Flag_of_Sweden.svg.png",
+                               str_detect(`Away Team`, "Wales") ~ "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Flag_of_Wales.svg/510px-Flag_of_Wales.svg.png")) %>% 
+  relocate(`Home Flag`, .before = `Home Team`)
+```
+
+```{r}
+#--- table
+table <- top_home_wins %>% 
+  arrange(`Home Team`) %>% 
+  gt() %>% 
+  # bar 
+  gt_plt_bar_pct(column = `Winning Margin`,
+                 fill = "#6e3232", background = "#c57675") %>% 
+  # flags
+  text_transform(locations = cells_body(c(`Home Flag`, `Away Flag`)),
+    fn = function(x){
+      web_image(url = x, height = px(23))
+    }
+  ) %>% 
+  # labels
+  tab_header(title = md("**Women's Rugby Fifteens Series**"),
+             subtitle = "Amsterdam World Cup 1998") %>% 
+  tab_footnote(footnote = "The number of wins by the home team when played at home ground",
+               locations = cells_column_labels(columns = `Total Wins`)) %>% 
+  tab_source_note("Source: ScrumQueens by way of Jacquie Tran | #TidyTuesday Week 21") %>% 
+  tab_options(table_body.border.top.color = "black",
+              column_labels.border.top.color = "black",
+              footnotes.font.size = 10,
+              source_notes.font.size = 8) %>% 
+  # fonts
+  opt_table_font(font = list(google_font(name ="Cormorant Garamond"))) %>% 
+  # change labels
+  cols_label(`Home Flag` = "",
+             `Away Flag` = "")
+
+#--- save table
+gtsave(table, "rugby_table.png")
+```
+
+
