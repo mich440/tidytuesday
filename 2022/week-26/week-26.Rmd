@@ -1,0 +1,111 @@
+---
+title: "UK Gender Pay Gap | Week 26"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# --- library
+library(tidyverse)
+library(showtext)
+
+font_add_google("IBM Plex Sans", "Light 300")
+font_add_google("Roboto Slab", "Regular 400")
+
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+#--- data
+tuesdata <- tidytuesdayR::tt_load("2022-06-28")
+
+paygap <- tuesdata$paygap
+```
+
+```{r}
+# --- data preprocessing & wrangling
+# select relevant variables
+paygap_sub <- paygap %>% 
+  select(address, male_top_quartile, female_top_quartile, employer_size)
+
+# filter to 10 largest cities
+paygap_sub <- paygap_sub %>% 
+  filter(str_detect(address, c("London|Birmingham|Liverpool|Sheffield|Bristol|Glasgow|Leicester|Edinburgh|Leeds|Cardiff")))
+
+# rename 
+paygap_sub <- paygap_sub %>% 
+  mutate(city = case_when(str_detect(address, "London") ~ "London",
+                          str_detect(address, "Birmingham") ~ "Birmingham",
+                          str_detect(address, "Liverpool") ~ "Liverpool",
+                          str_detect(address, "Sheffield") ~ "Sheffield",
+                          str_detect(address, "Bristol") ~ "Bristol",
+                          str_detect(address, "Glasgow") ~ "Glasgow",
+                          str_detect(address, "Leicester") ~ "Leicester",
+                          str_detect(address, "Edinburgh") ~ "Edinburgh",
+                          str_detect(address, "Leeds") ~ "Leeds",
+                          str_detect(address, "Cardiff") ~ "Cardiff"),
+         city = factor(city),
+         employer_size = factor(employer_size, 
+                                levels = c("Not Provided", "Less than 250", "250 to 499", "500 to 999", "1000 to 4999", 
+                                                          "5000 to 19,999", "20,000 or more"),
+                                labels = c("NA", "Less than 250", "250 - 499", "500 - 999", 
+                                           "1,000 - 4,999", "5,000 - 19,999", "20,000 or more"))) %>% 
+  select(city, employer_size, male_top_quartile, female_top_quartile)
+
+# filter out NA
+paygap_sub <- paygap_sub %>% 
+  filter(employer_size != "NA")
+
+# pivot longer
+paygap_long <- paygap_sub %>% 
+  pivot_longer(cols = 3:4, names_to = "gender", values_to = "percentage") %>% 
+  mutate(gender = case_when(str_detect(gender, "^m") ~ "male",
+                            str_detect(gender, "^f") ~ "female"))
+
+# calculate average
+paygap_avg <- paygap_long %>% 
+  group_by(city, employer_size, gender) %>% 
+  mutate(average = mean(percentage, na.rm = TRUE))
+```
+
+
+```{r}
+# --- plot
+ggplot() +
+  geom_point(data = paygap_avg, aes(x = employer_size, y = percentage), colour = "grey79", alpha = 0.1, size = 1) +
+  geom_point(data = paygap_avg, aes(x = employer_size, y = average, colour = gender), size = 1) +
+  geom_hline(yintercept = c(25, 50, 75), linetype = "dotted") +
+  labs(title = "UK High Earning Pay Gap between Genders",
+       subtitle = "Average percentage of each gender among the 10 largest cities",
+       x = "Employer Size", y = "Percentage",
+       caption = "Source: gender-pay-gap.service.gov.uk | #TidyTuesday Week 26") +
+  scale_colour_manual(values = c("#ec612e", "#2480e6"), label = c("Female", "Male")) +
+  facet_wrap(city ~ ., nrow = 2) +
+  theme_linedraw() +
+  theme(axis.title = element_text(size = 9, face = "bold"),
+        axis.text.x = element_text(angle = 90, size = 6.5),
+        legend.position = "top",
+        legend.background = element_rect(fill = "#faf3f0"),
+        legend.key = element_rect(fill = "#faf3f0"),
+        legend.key.height = unit(0.01, "cm"),
+        legend.text = element_text(family = "Regular 400"),
+        legend.title = element_blank(),
+        panel.background = element_rect(fill = "#faf3f0"),
+        panel.grid = element_blank(),
+        plot.background = element_rect(fill = "#faf3f0"),
+        plot.caption = element_text(size = 6),
+        plot.title = element_text(face = "bold"),
+        strip.background = element_rect(fill = "#faf3f0", colour = "#faf3f0"),
+        strip.text = element_text(family = "Regular 400", face = "bold", colour = "black"),
+        text = element_text(family = "Light 300"))
+
+# --- save plot
+ggsave("uk-pay.png", width = 8, height = 5, units = "in")
+```
+
