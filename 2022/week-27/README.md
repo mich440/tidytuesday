@@ -7,6 +7,6 @@ More info: [GitHub](https://github.com/rfordatascience/tidytuesday/blob/master/d
 2022-07-05
 
 <p align="center">
-  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-27/sf-permit.png" width = 45%/>
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-27/sf-permit.png" width = 70%/>
 </p>
 

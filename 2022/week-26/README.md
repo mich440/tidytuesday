@@ -5,7 +5,7 @@ More info: [GitHub](https://github.com/rfordatascience/tidytuesday/blob/master/d
 2022-06-28
 
 <p align="center">
-  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-26/uk-pay.png" width = 45%/>
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-26/uk-pay.png" width = 70%/>
 </p>
 
 - Compared the average percentage of each gender among the companies in UK's 10 largest cities by the employer size. 
