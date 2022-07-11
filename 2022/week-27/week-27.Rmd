@@ -1,0 +1,173 @@
+---
+title: "San Francisco Permits | Week 27"
+subtitle: "Tidy Tuesday"
+author: "Michelle Ohh"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#--- libraries
+library(sf)
+library(broom)
+library(cowplot)
+library(tidyverse)
+library(geojsonio)
+
+library(showtext)
+
+font_add_google("Source Serif Pro")
+font_add_google("Source Serif Pro", "SemiBold 600")
+font_add_google("PT Serif")
+
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+
+options(scipen = 999)
+```
+
+```{r}
+# --- data
+tuesdata <- tidytuesdayR::tt_load("2022-07-05")
+
+rent <- tuesdata$rent
+sf_permits <- tuesdata$sf_permits
+new_construction <- tuesdata$new_construction
+
+# shapefile
+# source: https://data.sfgov.org/Geographic-Locations-and-Boundaries/San-Francisco-ZIP-Codes/srq6-hmpi
+sf_grid <- st_read(here::here("2022/week-27/San Francisco ZIP Codes/geo_export_115cd49b-b2bd-4cfc-a67d-7dd22e1c0c20.shp"))
+```
+
+```{r}
+# --- data preprocessing
+# select relevant columns
+permit_sub <- sf_permits %>% 
+  select(permit_type, permit_type_definition, status, completed_date, 
+         estimated_cost, existing_use, proposed_use, 
+         neighborhoods_analysis_boundaries, zipcode, location)
+
+# remove missing observations
+permit_complete <- permit_sub[complete.cases(permit_sub),]
+
+# filter to completed status in 2001
+permit_complete <- permit_complete %>% 
+  filter(status == "complete" & completed_date < "2001-01-01")
+
+# summary for estimated cost
+permit_complete %>% 
+  summarise(min = min(estimated_cost, na.rm = TRUE),
+            max = max(estimated_cost, na.rm = TRUE),
+            mean = mean(estimated_cost, na.rm = TRUE),
+            median = median(estimated_cost, na.rm = TRUE),
+            first = quantile(estimated_cost, prob = 0.25, na.rm = TRUE),
+            third = quantile(estimated_cost, prob = 0.75, na.rm = TRUE),
+            IQR = IQR(estimated_cost, na.rm = TRUE))
+
+# filter to estimated costs greater than 1
+permit_complete <- permit_complete %>% 
+  filter(estimated_cost > 1)
+
+# extract lat and long
+permit_complete <- permit_complete %>% 
+  mutate(lat = str_extract(location, "-\\d+\\.\\d+(?!\\d)"),
+         lon = str_extract(location, "(?<=\\s)\\d+\\.\\d+"),
+         lat = as.numeric(lat),
+         lon = as.numeric(lon)) %>% 
+  select(-location)
+
+# filter to existing use same as proposed use
+permit_complete <- permit_complete %>% 
+  filter(existing_use == proposed_use) %>% 
+  mutate(use = proposed_use,
+         use = factor(use),
+         neighborhoods_analysis_boundaries = factor(neighborhoods_analysis_boundaries)) %>% 
+  select(-c(status, permit_type, permit_type_definition, existing_use, proposed_use))
+
+# select certain use
+permit_use <- permit_complete %>% 
+  filter(use %in% c("apartments", "retail sales", "office", "1 family dwelling", "2 family dwelling"))
+
+# compute range for cost
+permit_cost <- permit_use %>% 
+  mutate(cost = case_when(estimated_cost < 5000 ~ "< 5000",
+                          estimated_cost > 4999 & estimated_cost < 10000 ~ "5000 - 10000",
+                          estimated_cost > 9999 & estimated_cost < 50000 ~ "10000 - 50000",
+                          estimated_cost > 49999 & estimated_cost < 100000 ~ "50000 - 100000",
+                          estimated_cost > 99999 & estimated_cost < 500000 ~ "100000 - 500000",
+                          estimated_cost > 499999 & estimated_cost < 1000000 ~ "500000 - 1000000",
+                          estimated_cost > 999999 ~ "> 1000000"))
+```
+
+```{r}
+# ---- map 
+# bounding box
+sf_bb <- st_bbox(sf_grid)
+
+# streets of sf
+sf_roads <- st_bbox(sf_grid) %>% 
+  opq() %>% 
+  add_osm_feature("highway") %>% 
+  osmdata_sf()
+
+# convert data to spatial
+permit_cost_bb <- permit_cost %>% 
+  st_as_sf(coords = c("lat", "lon"), crs = 4326) %>% 
+  st_transform(st_crs(sf_grid)) %>% 
+  st_intersection(sf_grid)
+
+# convert to factor
+permit_cost_bb <- permit_cost_bb %>% 
+  mutate(cost = factor(cost,
+                       levels = c ("< 5000", "5000 - 10000", "10000 - 50000",
+                                   "50000 - 100000", "100000 - 500000", "500000 - 1000000",
+                                   "> 1000000"),
+                       labels = c("< 5,000", "5,000 - 10,000", "10,000 - 50,000",
+                                  "50,000 - 100,000", "100,000 - 500,000", "500,000 - 1,000,000",
+                                  "> 1,000,000")),
+         use = factor(use,
+                      levels = c("apartments", "office", "retail sales",
+                                 "1 family dwelling", "2 family dwelling"),
+                      labels = c("Apartments", "Office", "Retail Sales",
+                                 "1 Family Dwelling", "2 Family Dwelling")))
+```
+
+```{r}
+# --- plot
+ggplot() +
+  geom_sf(data = sf_grid, colour = "grey69", fill = "black") +
+  geom_sf(data = permit_cost_bb, aes(colour = cost), size = 0.8) +
+  labs(title = "San Francisco's Estimated Renovation Costs",
+       subtitle = "Renovation projects for each type of building that were completed in year 2000",
+       caption = "Source: Kate Pennington, Socrata API endpoint | #TidyTuesday Week 27") +
+  scale_colour_carto_d(palette = "Peach", type = "diverging", name = "Estimated Cost") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(colour = "#001d2d", fill = "#001d2d"),
+        panel.grid = element_blank(),
+        plot.background = element_rect(colour = "#001d2d", fill = "#001d2d"),
+        plot.caption = element_text(family = "PT Serif", size = 6, colour = "white"),
+        plot.title = element_text(family = "SemiBold 600", colour = "white", hjust = 0.5, size = 16),
+        plot.subtitle = element_text(family = "Source Serif Pro", size = 7, colour = "white", hjust = 0.5),
+        strip.text = element_text(family = "PT Serif", size = 8, colour = "white"),
+        strip.background = element_rect(colour = "grey69", fill = "#4d616c"),
+        legend.background = element_rect(colour = "grey69", fill = "black"),
+        legend.position = c(0.95,0.106),
+        legend.direction = "vertical",
+        legend.key = element_rect(colour = "#001d2d", fill = "#001d2d"),
+        legend.key.width = unit(0.02, "cm"),
+        legend.key.height = unit(0.22, "cm"),
+        legend.text = element_text(family = "PT Serif", size = 4, colour = "white"),
+        legend.title = element_text(family = "PT Serif", face = "bold", 
+                                    colour = "white", size = 6)) +
+  facet_wrap(~use)
+
+# --- save plot
+ggsave("sf-permit.png", width = 8, height = 6)
+```
+
+
+
