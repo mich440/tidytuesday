@@ -5,6 +5,10 @@ More info: [GitHub](https://github.com/rfordatascience/tidytuesday/blob/master/d
 2022-07-12
 
 <p align="center">
-  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-28/planes.png" width = 45%/>
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-28/planes.png" width = 70%/>
 </p>
 
+- Focused on: 
+  - The top 10 busiest airports in 2016 that are available in the dataset 
+  - Total departure and arrival flights in August
+- Notes: The pandemic showed a huge impact on the flight activities but in 2021, it is slowly increasing back to normal
