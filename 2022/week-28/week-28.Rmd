@@ -1,0 +1,181 @@
+---
+title: "week-28"
+author: "Michelle Ohh"
+date: "2022-07-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(zoo)
+library(cowplot)
+library(janitor)
+library(tidyverse)
+library(emojifont)
+library(rnaturalearth)
+
+library(showtext)
+
+font_add_google("IBM Plex Mono", "Regular 400")
+font_add_google("IBM Plex Mono", "SemiBold 600")
+font_add_google("Bebas Neue")
+```
+
+```{r}
+# --- data
+tuesdata <- tidytuesdayR::tt_load("2022-07-12")
+
+flights <- tuesdata$flights
+```
+
+```{r}
+# --- data preprocessing
+flights <- flights %>% 
+  clean_names()
+
+# select relevant columns
+flights_sub <- flights %>% 
+  select(flt_date, year, apt_name, flt_tot_1)
+
+# create yyyy-mm
+flights_sub <- flights_sub %>% 
+   mutate(yyyy_mm = as.yearmon(flt_date, "%Y %m")) %>% 
+  select(-flt_date)
+
+# top 10 busiest airports 2016
+busy_2016 <- c("London - Heathrow", "Paris-Charles-de-Gaulle", "Amsterdam - Schiphol",
+                         "Frankfurt", "Madrid - Barajas", "Barcelona", "London - Gatwick", "Munich", 
+                         "Rome - Fiumicino", "Paris-Orly")
+
+# filter to top 10 busiest airports in 2016
+airports <- flights_sub %>% 
+  filter(apt_name %in% busy_2016) %>% 
+  mutate(apt_name = factor(apt_name, 
+                           levels = c("London - Heathrow", "Paris-Charles-de-Gaulle", "Amsterdam - Schiphol",
+                         "Frankfurt", "Madrid - Barajas", "Barcelona", "London - Gatwick", "Munich", 
+                         "Rome - Fiumicino", "Paris-Orly"),
+                         labels = c("London - Heathrow", "Paris - Charles-de-Gaulle", "Amsterdam - Schiphol",
+                         "Frankfurt", "Madrid - Barajas", "Barcelona", "London - Gatwick", "Munich", 
+                         "Rome - Fiumicino", "Paris - Orly")))
+
+# filter to august 
+airports_08 <- airports %>% 
+  filter(month(yyyy_mm) == 8) %>% 
+  mutate(year = year(yyyy_mm))
+
+# calculate total in that month
+airports_08 <- airports_08 %>% 
+  group_by(year, apt_name) %>% 
+  summarise(month_total = sum(flt_tot_1)) %>% 
+  ungroup()
+
+# factor year
+airports_08 <- airports_08 %>% 
+  mutate(year = factor(year))
+```
+
+```{r}
+# --- map
+world <- ne_countries(scale = 110, 
+                      returnclass = "sf")
+
+# filter to europe
+europe <- world %>% 
+  filter(continent == "Europe")
+```
+
+```{r}
+# --- plot
+# x labels
+x_bottom <- c("London - Heathrow", "Amsterdam - Schiphol", "Madrid - Barajas", "London - Gatwick", "Rome - Fiumicino")
+x_top <- c("Paris - Charles-de-Gaulle", "Frankfurt", "Barcelona", "Munich", "Paris - Orly")
+
+plot_label <- tibble(
+  apt_name = c("London - Heathrow", "Paris - Charles-de-Gaulle", "Amsterdam - Schiphol",
+                         "Frankfurt", "Madrid - Barajas", "Barcelona", "London - Gatwick", "Munich", 
+                         "Rome - Fiumicino", "Paris - Orly"),
+  month_total = ifelse(apt_name %in% x_bottom, 0, 60000))
+
+# point plot
+p1 <- ggplot() +
+  geom_text(data = airports_08, aes(x = apt_name, y = month_total, colour = year),
+            family = "fontawesome-webfont", label = fontawesome("fa-plane")) +
+  geom_text(data = plot_label, aes(x = apt_name, y = month_total, label = apt_name), 
+            size = 3, family = "Bebas Neue", colour = "#0c4586") +
+  labs(title = "Are the busiest airports in 2016 still as busy?",
+       subtitle = "Total flight arrivals and departures for the month of August") +
+  scale_color_carto_d(palette = "RedOr") +
+  guides(colour = guide_legend(direction = "horizontal",
+                               title = "Year",
+                               title.hjust = 0.5,
+                               title.vjust = -1,
+                               title.position = "top",
+                               nrow = 1)) +
+  theme_void() +
+  theme(legend.title = element_text(family = "Regular 400", size = 7),
+        legend.text = element_text(family = "Regular 400", size = 4.5),
+        legend.position = "bottom",
+        plot.title = element_text(family = "SemiBold 600", hjust = 0.5),
+        plot.subtitle = element_text(family = "Regular 400", size = 8, hjust = 0.5))
+
+# map
+m1 <- ggplot(europe) +
+  geom_sf(colour = "transparent", fill = "#bbdee4") +
+  coord_sf(xlim = c(-25, 79), ylim = c(34, 70), expand = FALSE) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "#eef7f8", colour = "#eef7f8")) 
+
+# legend
+legend <- get_legend(p1)
+
+# plane and map
+main1 <- ggdraw(m1) +
+  draw_plot(p1 + theme(legend.position = "none")) 
+
+# add legend
+main2 <- plot_grid(main1, legend, nrow = 2, rel_heights = c(1, 0.1))
+
+# main plot
+ggdraw(main2) +
+  draw_text("Source: Eurocontrol h/t Data is Plural | #TidyTuesday Week 28", x = 0.87, y = 0.01, 
+            family = "IBM Plex Mono", size = 4) +
+  ggforce::geom_mark_circle(aes(x = 0.355, y = 0.70, label = "46,402 flights"),
+                            colour = "transparent", label.fill = "transparent", 
+                            label.fontsize = 6, label.margin = margin(10 , 2, 1, 2, "mm"),
+                            label.buffer = unit(5, "mm"), expand = unit(2, "mm"), 
+                            label.colour = "#e3726d", con.colour = "#e3726d",
+                            con.type = "straight") +
+  # ggforce::geom_mark_circle(aes(x = 0.45, y = 0.33, label = "15,173 flights"),
+  #                           colour = "transparent", label.fill = "transparent", 
+  #                           label.fontsize = 6, label.margin = margin(20 , 1, 2, 2, "mm"),
+  #                           label.buffer = unit(5, "mm"), expand = unit(2, "mm"), 
+  #                           label.colour = "#cf586b", con.colour = "#cf586b",
+  #                           con.type = "straight") +
+  ggforce::geom_mark_circle(aes(x = 0.745, y = 0.57, label = "36,091 flights"),
+                            colour = "transparent", label.fill = "transparent", 
+                            label.fontsize = 6, label.margin = margin(-5 , 2, 1, 2, "mm"),
+                            label.buffer = unit(5, "mm"), expand = unit(2, "mm"), 
+                            label.colour = "#e3726d", con.colour = "#e3726d",
+                            con.type = "straight") +
+  ggforce::geom_mark_circle(aes(x = 0.26, y = 0.45, label = "24,069 flights"),
+                            colour = "transparent", label.fill = "transparent", 
+                            label.fontsize = 6, label.margin = margin(20 , 1, 2, 2, "mm"),
+                            label.buffer = unit(5, "mm"), expand = unit(2, "mm"), 
+                            label.colour = "#cf586b", con.colour = "#cf586b",
+                            con.type = "straight") +
+    ggforce::geom_mark_circle(aes(x = 0.64, y = 0.25, label = "8,211 flights"),
+                            colour = "transparent", label.fill = "transparent", 
+                            label.fontsize = 6, label.margin = margin(13 , 1, 2, 2, "mm"),
+                            label.buffer = unit(5, "mm"), expand = unit(2, "mm"), 
+                            label.colour = "#b13f63", con.colour = "#b13f63",
+                            con.type = "straight") +
+  theme(plot.background = element_rect(fill = "#eef7f8", colour = "#eef7f8"))
+
+# --- save plot
+ggsave("planes.png", width = 8.5, height = 5.3)
+```
+
+
