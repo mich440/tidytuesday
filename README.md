@@ -6,6 +6,11 @@ Contributions to the [#TidyTuesday](https://github.com/rfordatascience/tidytuesd
 
 Feedbacks and tips are very much appreciated at [Twitter](https://twitter.com/mich_440)
 
+## [2022 - Week 28](https://github.com/mich440/tidytuesday/blob/main/2022/week-28/week-28.Rmd)
+<p align="center">
+  <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-28/planes.png" width = 70%/>
+</p>
+
 ## [2022 - Week 27](https://github.com/mich440/tidytuesday/blob/main/2022/week-27/week-27.Rmd)
 <p align="center">
   <img src = "https://github.com/mich440/tidytuesday/blob/main/2022/week-27/sf-permit.png" width = 70%/>
