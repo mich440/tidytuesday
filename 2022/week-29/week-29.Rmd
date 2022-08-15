@@ -1,0 +1,146 @@
+---
+title: "data"
+author: "Michelle Ohh"
+date: "2022-07-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# --- library
+library(tidyverse)
+library(ggsankey)
+
+library(showtext)
+font_add_google("Roboto", "Regular 400")
+showtext_opts(dpi = 120)
+showtext_auto(enable = TRUE)
+
+options(scipen=999)
+```
+
+```{r}
+#--- data
+tuesdata <- tidytuesdayR::tt_load("2022-07-19")
+
+technology <- tuesdata$technology
+
+# gdp per capita
+gdp <- read_csv(here::here("2022/week-29/data/gdp-per-capita-maddison-2020.csv"))
+```
+
+```{r}
+# --- data wrangling
+# rename 
+technology <- technology %>% 
+  rename("country" = "iso3c")
+
+# filter to transport
+transport <- technology %>% 
+  filter(category == "Transport")
+
+# large countries in western europe
+west_europe <- c("DEU", "FRA", "NLD", "BGR", "CHE", "AUT")
+
+# filter 
+west_car <- transport %>% 
+  filter(country %in% west_europe & # countries in west europe
+           label == "Passenger car vehicles") # passenger vehicles
+
+# select relevant variables
+west_car <- west_car %>% 
+  select(country, year, value) 
+
+# create decades
+west_df <- west_car %>% 
+  mutate(decade = case_when(year > 1889 & year < 1900 ~ "1890s",
+                            year > 1899 & year < 1910 ~ "1900s",
+                            year > 1909 & year < 1920 ~ "1910s",
+                            year > 1919 & year < 1930 ~ "1920s",
+                            year > 1929 & year < 1940 ~ "1930s",
+                            year > 1939 & year < 1950 ~ "1940s",
+                            year > 1949 & year < 1960 ~ "1950s",
+                            year > 1959 & year < 1970 ~ "1960s",
+                            year > 1969 & year < 1980 ~ "1970s",
+                            year > 1979 & year < 1990 ~ "1980s",
+                            year > 1989 & year < 2000 ~ "1990s",
+                            year > 1999 & year < 2010 ~ "2000s",
+                            year > 2009 & year < 2020 ~ "2010s"))
+```
+
+```{r}
+# select relevant variables
+gdp <- gdp %>% 
+  select(Code, Year, `GDP per capita`)
+
+# filter gdp to countries
+gdp_west <- gdp %>% 
+  filter(Code %in% west_europe)
+
+# join with gdp
+car_gdp <- west_df %>% 
+  left_join(gdp_west, by = c("country" = "Code",
+                             "year" = "Year"))
+
+# calculate vehicle per gdp per capita
+car_gdp <- car_gdp %>% 
+  mutate(car_gdp_cap = value / `GDP per capita`)
+
+# in plot label
+inplot_label <- car_gdp %>% 
+  select(country, year, car_gdp_cap) %>% 
+  filter(year == 2000 & country %in% c("DEU", "FRA")) %>% 
+  mutate(label = case_when(country == "DEU" ~ car_gdp_cap + 600,
+                           country == "FRA" ~ car_gdp_cap + 150))
+
+# out plot label
+outplot_label <- car_gdp %>% 
+  select(country, year, car_gdp_cap) %>% 
+  filter(year == 2000 & country %in% c("AUT", "BGR", "NLD", "CHE")) %>% 
+  mutate(label = case_when(country == "AUT" ~ car_gdp_cap + 30,
+                           country == "BGR" ~ car_gdp_cap + 60,
+                           country == "NLD" ~ car_gdp_cap + 300,
+                           country == "CHE" ~ car_gdp_cap - 50),
+         year = ifelse(country %in% c("AUT", "NLD"), 2023, year),
+         year = ifelse(country %in% c("CHE", "BGR"), 2028, year),
+         x = 2018,
+         xend = case_when(year == 2023 ~ 2020,
+                          year == 2028 ~ 2025))
+```
+
+```{r}
+# --- plot
+ggplot(car_gdp) +
+  geom_sankey_bump(aes(x = year, value = car_gdp_cap, fill = country, node = country),
+                   space = 0, type = "alluvial", colour = "transparent", smooth = 6) +
+  # in plot labels
+  geom_text(data = inplot_label,
+            aes(x = year, y = label, label = country),
+            colour = "white", family = "Regular 400") +
+  # out plot labels
+  geom_text(data = outplot_label,
+            aes(x = year, y = label, label = country),
+            size = 3, colour =  c("#dd6d6e", "#f1b64f", "#1e71a3", "#8da8c9"), family = "Regular 400") +
+  geom_segment(data = outplot_label,
+               aes(x = x, y = label, xend = xend, yend = label),
+               colour =  c("#dd6d6e", "#f1b64f", "#1e71a3", "#8da8c9")) +
+  scale_fill_manual(values = c("#dd6d6e", "#f1b64f", "#1e71a3", "#f37551", "#2d949e", "#8da8c9")) +
+  labs(x = "Year", y = "Passenger car vehicles per GDP per capita",
+       title = "The need for speed",
+       subtitle = "Number of passenger car vehicles per GDP per capita",
+       caption = "Source: data.nber.org | #TidyTuesday Week 29") +
+  theme_minimal() +
+  theme(axis.title.y = element_text(size = 9),
+        axis.title = element_text(family = "Regular 400", face = "bold"),
+        legend.position = "none",
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(colour = "#e7e8ea"),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(family = "Regular 400", face = "bold", size = 15, hjust = -0.1),
+        plot.subtitle = element_text(family = "Regular 400", size = 12, hjust = -0.18),
+        plot.caption = element_text(family = "Regular 400", size = 8))
+```
+
