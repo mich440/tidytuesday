@@ -129,8 +129,8 @@ ggplot(car_gdp) +
                colour =  c("#dd6d6e", "#f1b64f", "#1e71a3", "#8da8c9")) +
   scale_fill_manual(values = c("#dd6d6e", "#f1b64f", "#1e71a3", "#f37551", "#2d949e", "#8da8c9")) +
   labs(x = "Year", y = "Passenger car vehicles per GDP per capita",
-       title = "The need for speed",
-       subtitle = "Number of passenger car vehicles per GDP per capita",
+       title = "The need for convenient commutes",
+       subtitle = "Number of passenger car vehicles per GDP per capita in the major cities of Western Europe",
        caption = "Source: data.nber.org | #TidyTuesday Week 29") +
   theme_minimal() +
   theme(axis.title.y = element_text(size = 9),
@@ -139,8 +139,12 @@ ggplot(car_gdp) +
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_line(colour = "#e7e8ea"),
         panel.grid.minor = element_blank(),
-        plot.title = element_text(family = "Regular 400", face = "bold", size = 15, hjust = -0.1),
-        plot.subtitle = element_text(family = "Regular 400", size = 12, hjust = -0.18),
+        plot.background = element_rect(fill = "white", colour = "white"),
+        plot.title = element_text(family = "Regular 400", face = "bold", size = 15, hjust = -0.13),
+        plot.subtitle = element_text(family = "Regular 400", size = 10, hjust = -0.3),
         plot.caption = element_text(family = "Regular 400", size = 8))
+
+# --- save plot
+ggsave("technology.png", width = 8, height = 6)
 ```
 
