@@ -30,6 +30,7 @@ technology <- tuesdata$technology
 
 # gdp per capita
 gdp <- read_csv(here::here("2022/week-29/data/gdp-per-capita-maddison-2020.csv"))
+population <- read_csv(here::here("2022/week-29/data/API_SP.POP.TOTL_DS2_en_csv_v2_4335082.csv"), skip = 4)
 ```
 
 ```{r}
@@ -147,4 +148,75 @@ ggplot(car_gdp) +
 # --- save plot
 ggsave("technology.png", width = 8, height = 6)
 ```
+
+```{r}
+# population
+# filter to west europe
+population <- population %>% 
+  filter(`Country Code` %in% west_europe)
+
+# select relevant variables
+population <- population %>% 
+  select(c(2, 5:67))
+
+# pivot longer
+pop_long <- population %>% 
+  pivot_longer(cols = 2:64, names_to = "year", values_to = "population")
+
+# select years
+years <- pop_long %>% 
+  distinct(year) %>% 
+  slice(1:62) %>% 
+  pull()
+
+# remove inconsistent data
+pop_long <- pop_long %>% 
+  filter(year %in% years) %>% 
+  mutate(year = as.numeric(year))
+
+# filter to years
+west_years <- west_df %>% 
+  filter(year %in% years)
+
+# combine data
+car_pop <- west_years %>% 
+  left_join(pop_long, 
+            by = c("country" = "Country Code",
+                   "year" = "year"))
+
+# calculate car per pop
+car_pop <- car_pop %>% 
+  mutate(car_per_pop = value/population)
+```
+
+```{r}
+# --- plot
+ggplot(car_pop) +
+  geom_sankey_bump(aes(x = year, value = car_per_pop, fill = country, node = country),
+                   space = 0, type = "alluvial", colour = "transparent", smooth = 6) +
+  scale_fill_manual(values = c("#dd6d6e", "#f1b64f", "#1e71a3", "#f37551", "#2d949e", "#8da8c9")) +
+  labs(x = "Year", y = "Passenger car vehicles per population",
+       title = "The need for convenient commutes",
+       subtitle = "Number of passenger car vehicles per population in the major countries of Western Europe",
+       caption = "Source: data.nber.org | #TidyTuesday Week 29") +
+  guides(fill = guide_legend(nrow = 1)) +
+  theme_minimal() +
+  theme(axis.title.y = element_text(size = 9),
+        axis.title = element_text(family = "Regular 400", face = "bold"),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.text = element_text(family = "Regular 400"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(colour = "#e7e8ea"),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "white"),
+        plot.title = element_text(family = "Regular 400", face = "bold", size = 15, hjust = -0.035),
+        plot.subtitle = element_text(family = "Regular 400", size = 10, hjust = -0.05),
+        plot.caption = element_text(family = "Regular 400", size = 8))
+
+# --- save plot
+ggsave("technology-pop.png", width = 10, height = 6)
+```
+
+
 
