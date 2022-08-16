@@ -131,7 +131,7 @@ ggplot(car_gdp) +
   scale_fill_manual(values = c("#dd6d6e", "#f1b64f", "#1e71a3", "#f37551", "#2d949e", "#8da8c9")) +
   labs(x = "Year", y = "Passenger car vehicles per GDP per capita",
        title = "The need for convenient commutes",
-       subtitle = "Number of passenger car vehicles per GDP per capita in the major cities of Western Europe",
+       subtitle = "Number of passenger car vehicles per GDP per capita in the major countries of Western Europe",
        caption = "Source: data.nber.org | #TidyTuesday Week 29") +
   theme_minimal() +
   theme(axis.title.y = element_text(size = 9),
