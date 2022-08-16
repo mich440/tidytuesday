@@ -21,3 +21,4 @@ More info: [GitHub](https://github.com/rfordatascience/tidytuesday/tree/master/d
 </p>
 
 -  Thanks to [@JulienMouchnino](https://twitter.com/JulienMouchnino) comment on Twitter, I've updated the plot to passenger cars per population
+- Population data from [data.worldbank.org](https://data.worldbank.org/indicator/SP.POP.TOTL?locations=DE-FR-CH-AT-BE-NL)
