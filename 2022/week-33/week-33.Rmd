@@ -1,0 +1,298 @@
+---
+title: "week-33"
+author: "Michelle Ohh"
+date: "2022-08-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# --- library
+library(emoji)
+library(ggforce)
+library(MetBrewer)
+library(tidyverse)
+```
+
+```{r}
+# --- data
+tuesdata <- tidytuesdayR::tt_load("2022-08-16")
+
+characters <- tuesdata$characters
+myers_briggs <- tuesdata$myers_briggs
+psych_stats <- tuesdata$psych_stats
+```
+
+```{r}
+# --- data wrangling and preprocessing
+# filter to gossip girl
+gossip_girl <- psych_stats %>% 
+  filter(uni_name == "Gossip Girl")
+
+gossip_girl_char <- characters %>% 
+  filter(uni_name == "Gossip Girl")
+
+# select relevant variable
+gossip_girl <- gossip_girl %>% 
+  select(char_name, question, personality, avg_rating)
+
+# filter out the emoji personalities
+gossip_girl <- gossip_girl %>% 
+  filter(!str_detect(question, emoji_rx))
+
+# personalities
+persona <- c("poor/rich", "accepting/judgemental", "desperate/high standards", "proper/scandalous")
+
+# filter to selected personalities
+gg_per <- gossip_girl %>% 
+  filter(question %in% persona)
+```
+
+```{r}
+# calculate opposites
+gg_df <- gg_per %>% 
+  mutate(avg_rating = ifelse(personality == "poor", 100 - avg_rating, avg_rating),
+         avg_rating = ifelse(personality == "accepting", 100 - avg_rating, avg_rating),
+         avg_rating = ifelse(personality == "proper", 100 - avg_rating, avg_rating),
+         avg_rating = ifelse(personality == "desperate", 100 - avg_rating, avg_rating))
+
+# change personality data
+gg_df <- gg_df %>% 
+  mutate(personality = ifelse(personality == "poor", "rich", personality),
+         personality = ifelse(personality == "accepting", "judgemental", personality),
+         personality = ifelse(personality == "proper", "scandalous", personality),
+         personality = ifelse(personality == "desperate", "high standards", personality))
+
+# convert to factors
+gg_df <- gg_df %>% 
+  mutate(char_name = factor(char_name),
+         question = factor(question),
+         personality = factor(personality, 
+                              levels = c("judgemental", "high standards", "scandalous", "rich")))
+```
+
+```{r}
+# filter to respective characters
+# create function to filter
+gg_filter <- function(character = character){
+  gg_df %>% 
+    filter(char_name == character)
+}
+
+# filtering
+blair <- gg_filter("Blair Waldorf")
+chuck <- gg_filter("Chuck Bass")
+serena <- gg_filter("Serena van der Woodsen")
+nate <- gg_filter("Nate Archibald")
+lily <- gg_filter("Lily van der Woodsen")
+dan <- gg_filter("Dan Humphrey")
+```
+
+```{r}
+# --- plot
+# create function for plot
+gg_plot <- function(data = data){
+  ggplot() +
+  geom_arc_bar(data = data,
+               aes(x0 = 0,
+                   y0 = 0,
+                   r0 = 0.6,
+                   r = 1,
+                   amount = avg_rating,
+                   fill = personality,
+                   explode = 0),
+               stat = "pie") +
+  theme_void() +
+  theme(aspect.ratio = 1,
+        legend.position = "none") +
+  scale_fill_manual(values = met.brewer("Manet", 4),
+                    labels = c("Judgemental", "High Standards", "Scandalous", "Rich"))
+}
+
+# respective character plots
+blair_plot <- gg_plot(blair) +
+  labs(title = "blair")
+chuck_plot <- gg_plot(chuck) +
+  labs(title = "chuck")
+serena_plot <- gg_plot(serena) +
+  labs(title = "serena")
+nate_plot <- gg_plot(nate) +
+  labs(title = "nate")
+lily_plot <- gg_plot(lily) +
+  labs(title = "lily")
+dan_plot <- gg_plot(dan) +
+  labs(title = "dan")
+```
+
+
+```{r}
+# add images to the plot
+# create function to draw images into donut
+image_donut <- function(image = image,
+                        plot = plot) {
+  ggdraw() +
+    draw_image(image = image,
+               x = 0.24, y = 0.16,
+               width = 0.55, height = 0.55) +
+    draw_plot(plot = plot)
+}
+
+# blair
+blair_plot2 <- image_donut(image = "https://openpsychometrics.org/tests/characters/test-resources/pics/GOG/2.jpg",
+            plot = blair_plot)
+
+# chuck
+chuck_plot2 <- image_donut(image = "https://openpsychometrics.org/tests/characters/test-resources/pics/GOG/5.jpg",
+                           plot = chuck_plot) 
+
+# serena
+serena_plot2 <- image_donut(image = "https://openpsychometrics.org/tests/characters/test-resources/pics/GOG/1.jpg",
+                            plot = serena_plot)
+
+# nate
+nate_plot2 <- image_donut(image = "https://openpsychometrics.org/tests/characters/test-resources/pics/GOG/4.jpg",
+                          plot = nate_plot) 
+
+# lily
+lily_plot2 <- image_donut(image = "https://openpsychometrics.org/tests/characters/test-resources/pics/GOG/6.jpg",
+                          plot = lily_plot)
+
+# dan
+dan_plot2 <- image_donut(image = "https://openpsychometrics.org/tests/characters/test-resources/pics/GOG/3.jpg",
+                         plot = dan_plot)
+# draw plot 1
+plot1 <- plot_grid(NULL, serena_plot2, lily_plot2, NULL,
+          dan_plot2, blair_plot2, nate_plot2,
+          NULL, NULL, chuck_plot2, NULL, NULL)
+```
+
+```{r}
+# draw connecting lines
+plot2 <- ggdraw(plot1) + 
+  # serena & lily
+  draw_line(x = c(0.459, 0.543), 
+            y = c(0.82, 0.82),
+            size = 1.1, linetype = 4, colour ="#e6de9c") +
+  # blair & nate
+  draw_line(x = c(0.458, 0.542),
+            y = c(0.475, 0.475),
+            size = 1.1, colour ="#e6de9c") +
+  # blair & dan
+  draw_line(x = c(0.208, 0.292),
+           y = c(0.475, 0.475),
+           size = 1.1, colour ="#e6de9c") +
+  # dan & serena
+  draw_line(x = c(0.125, 0.292),
+            y = c(0.82, 0.82), 
+            size = 1.1, colour ="#e6de9c") +
+  draw_line(x = c(0.125, 0.125),
+            y = c(0.628, 0.821),
+            size = 1.1, colour ="#e6de9c") +
+  # chuck & blair
+  draw_line(x = c(0.375, 0.375),
+            y = c(0.296, 0.345),
+            size = 1.1, colour ="#e6de9c") +
+  # serena & blair
+  draw_line(x = c(0.375, 0.375),
+            y = c(0.63, 0.68),
+            size = 1.1, linetype = 3, colour ="#e6de9c") +
+  # chuck & nate
+  draw_line(x = c(0.458, 0.631),
+            y = c(0.15, 0.15),
+            size = 1.1, linetype = 3, colour ="#e6de9c") +
+  draw_line(x = c(0.635, 0.635),
+            y = c(0.148, 0.344),
+            size = 1.1, linetype = 3, colour ="#e6de9c") +
+  # serena & nate
+  draw_line(x = c(0.375, 0.375),
+            y = c(0.963, 0.991),
+            size = 1.1, colour ="#e6de9c") +
+  draw_line(x = c(0.374, 0.781),
+            y = c(0.99, 0.99),
+            size = 1.1, colour ="#e6de9c") +
+  draw_line(x = c(0.78, 0.78),
+            y = c(0.475, 0.99),
+            size = 1.1, colour ="#e6de9c") +
+  draw_line(x = c(0.7071, 0.781),
+            y = c(0.475, 0.475),
+            size = 1.1, colour ="#e6de9c") +
+  theme(plot.background = element_rect(fill = "black"))
+```
+
+```{r}
+# add name labels
+plot3 <- plot2 +
+  draw_text("Serena van der Woodsen", x = 0.285, y = 0.94, size = 8, colour = "white") +
+  draw_text("Lily van der Woodsen", x = 0.54, y = 0.94, size = 8, colour = "white") +
+  draw_text("Blair Waldorf", x = 0.305, y = 0.61, size = 8, colour = "white") +
+  draw_text("Nate Archibald", x = 0.554, y = 0.61, size = 8, colour = "white") +
+  draw_text("Dan Humphrey", x = 0.055, y = 0.61, size = 8, colour = "white") +
+  draw_text("Chuck Bass", x = 0.302, y = 0.27, size = 8, colour = "white")
+```
+
+```{r}
+# legend
+# get donut plot legend
+gg_legend <- get_legend(blair_plot +
+                        guides(fill = guide_legend(title = "Personality",
+                                                   title.position = "top",
+                                                   ncol = 1,
+                                                   keyheight = 1.5,
+                                                   keywidth = 1.5)) +
+                        theme(legend.position = "bottom",
+                              legend.title = element_text(colour = "white", size = 12),
+                              legend.text = element_text(colour = "white")))
+
+# relationship legend
+leg_line <- tibble(x = rep(0, 3),
+                   xend = rep(1, 3),
+                   y = seq(1:3),
+                   yend = seq(1:3),
+                   Relationship = c("Best Friend", "Dated", "Family")) 
+
+leg_plot <- ggplot(leg_line) +
+  geom_segment(aes(x = x, xend = xend, 
+                   y = y, yend = yend, 
+                   group = Relationship, colour = Relationship,
+                   linetype = Relationship)) +
+  scale_linetype_manual(values = c(3, 1, 4)) +
+  scale_colour_manual(values = c("#e6de9c", "#e6de9c", "#e6de9c")) +
+  theme(plot.background = element_rect(colour = "black", fill = "black"),
+        panel.background = element_rect(colour = "black", fill = "black"))
+
+# get line legend
+gg_line_legend <- get_legend(leg_plot +
+                               guides(fill = guide_legend(title = "Relationship",
+                                                          title.position = "top",
+                                                          ncol = 1,
+                                                          keyheight = 1.5,
+                                                          keywidth = 1,5)) + 
+                               theme(legend.title = element_text(colour = "white", size = 12),
+                                     legend.text = element_text(colour = "white"),
+                                     legend.background = element_rect(colour = "black", fill = "black"),
+                                     legend.key = element_rect(colour = "black", fill = "black")))
+```
+
+```{r}
+# final plot
+ggdraw(plot3) +
+  draw_image(image = here::here("2022/week-33/image/original.png"),
+             width = 0.25, height = 0.15, 
+             x = 0.71, y = 0.25) +
+  # description
+  draw_text("Gossip Girl here, your one and only source \ninto the scandalous lives of Manhattan's elite. \nDating Serena makes one more scandalous.\nBut you can't help being judgemental when \nyou're rich, unless you're an Archibald.", 
+            size = 15, colour = "white", x = 0.715, y = 0.18, hjust = 0) +
+  # caption
+  draw_text("Source: Open-Source Psychometrics Project courtesy of Tanya Shapiro | #TidyTuesday Week 33", 
+            x = 0.15, y = 0.02, size = 8, colour = "white") +
+  # legends
+  draw_grob(gg_legend, x = -0.415, y = -0.35) +
+  draw_grob(gg_line_legend, x = -0.33, y = -0.325)
+
+# --- save plot
+ggsave("gossip_girl.png", width = 17, height = 10)
+```
+
